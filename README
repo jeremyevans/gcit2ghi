@@ -1,0 +1,78 @@
+gcit2ghi.rb
+-----------
+
+This is a simple script to convert from Google Code Issue Tracker to
+GitHub Issues.
+
+Usage
+-----
+
+ruby gcit2ghi.rb project user repo password
+
+project - Google Code project
+user - GitHub user name
+repo - GitHub repository name
+password - GitHub user password
+
+If you have more than 500 issues or more than 500 comments for an
+issue, modify the MAX_RESULTS constant in gcit2ghi.rb.
+
+Requirements
+------------
+
+1) ruby - Programming Language
+2) nokogiri - For parsing the Google Code XML files
+3) json - For serializing the GitHub API calls
+4) rest-client - For submitting the GitHub API calls
+
+How It Works
+------------
+
+1) Downloads the Issue Tracker feed from Google Code (caching it
+   locally in a created xml subdirectory).  Parses out all issues.
+
+2) For each issue, downloads the Issue Comments feed from Google
+   Code (caching it locally) and parses out all comments for the
+   issue.
+
+3) Does some preprocessing of the parsed out entries to add to
+   the body of issues and comments so that the GitHub issues will
+   be able to tell the which Google Code user opened the issue,
+   the creation and closed date of the issue, and the Google Code
+   user and posting date for each comment on the issue.
+
+4) Uploads each issue to GitHub, potentially marks the issue as
+   closed if it was closed on Google Code, and uploads each comment
+   related to the issue.
+
+Caveats
+-------
+
+There is very little error handling done.  There are no descriptive
+comments in the source code.
+
+Files uploaded to Google Code are not copied.
+
+Labels and milestones are not copied, only the title and body of
+issues and the body of comments.  The GitHub assignee is set to the
+user you provided.
+
+If you have a problem with the script after a partial import, you can
+open the script and uncomment out the lines that delete existing
+issues.  You shouldn't do this if you want to keep any existing
+issues, though.
+
+This was used to convert the ruby-sequel Google Code issues to
+jeremyevans/sequel on GitHub.  I don't plan on using it again or
+improving it, so if you want to make improvements, please fork.
+
+License
+-------
+
+This code is licensed under the MIT license.  See the MIT-LICENSE
+file for details.
+
+Author
+------
+
+Jeremy Evans <code@jeremyevans.net>
