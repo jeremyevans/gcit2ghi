@@ -7,16 +7,16 @@ require 'cgi'
 require 'json'
 require 'rest_client'
 
-mkdir("xml") unless File.directory?("xml")
+Dir.mkdir("xml") unless File.directory?("xml")
 $stdout.sync = true
 
 class GCIT2GHI
   MAX_RESULTS = 500
-  attr_reader :project, :user, :repo, :password, :entries, :resource
+  attr_reader :project, :user, :repo, :password, :entries, :resource, :org
 
-  def initialize(project, user, repo, password)
+  def initialize(project, user, repo, password, *org)
     raise "No project name" unless project && !project.empty?
-    @project, @user, @repo, @password= project, user, repo, password
+    @project, @user, @repo, @password, @org = project, user, repo, password, org
   end
 
   def gcit_issues_url
@@ -28,7 +28,7 @@ class GCIT2GHI
   end
 
   def ghi_issues_url
-    "https://api.github.com/repos/#{user}/#{repo}/issues"
+	@org ? "https://api.github.com/repos/#{org}/#{repo}/issues" : "https://api.github.com/repos/#{user}/#{repo}/issues"
   end
 
   def namespaces
@@ -77,7 +77,6 @@ class GCIT2GHI
         :json => {
           "title"=>t(e, 'atom:title'),
           "body"=>uh(e, 'atom:content'),
-          "assignee"=>user,
         }
       }
     end
