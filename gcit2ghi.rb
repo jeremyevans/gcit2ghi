@@ -7,47 +7,47 @@ require 'cgi'
 require 'json'
 require 'rest_client'
 
-mkdir("xml") unless File.directory?("xml")
+Dir.mkdir("xml") unless File.directory?("xml")
 $stdout.sync = true
-
+  
 class GCIT2GHI
   MAX_RESULTS = 500
-  attr_reader :project, :user, :repo, :password, :entries, :resource
+  attr_reader :project, :user, :repo, :password, :entries, :resource, :owner
 
-  def initialize(project, user, repo, password)
+  def initialize(project, user, password, owner, repo)
     raise "No project name" unless project && !project.empty?
-    @project, @user, @repo, @password= project, user, repo, password
+    @project, @user, @password, @owner, @repo = project, user, password, owner, repo
   end
 
-  def gcit_issues_url
+  def gcit_issues_url # Generates the URL of the tickets feed
     "https://code.google.com/feeds/issues/p/#{project}/issues/full?max-results=#{MAX_RESULTS}"
   end
 
-  def gcit_comments_url(issue_id)
+  def gcit_comments_url(issue_id) # Generates the URL of the comment feed for each ticket
     "https://code.google.com/feeds/issues/p/#{project}/issues/#{issue_id}/comments/full?max-results=#{MAX_RESULTS}"
   end
 
-  def ghi_issues_url
-    "https://api.github.com/repos/#{user}/#{repo}/issues"
+  def ghi_issues_url # Generates the URL to push tickets into GitHub issues
+    "https://api.github.com/repos/#{owner}/#{repo}/issues"
   end
-
-  def namespaces
+  
+  def namespaces # Defines the namespace (aka the filename)
     @namespaces ||= Hash[*issues_doc.namespaces.to_a.map{|k, v| [k.gsub(/\Axmlns(:)?/){$1 ? '' : 'atom'}, v]}.flatten]
   end
 
-  def q(doc, query)
+  def q(doc, query) # Returns a Nokogiri::XML::NodeSet object from the file doc for the query
     doc.xpath(query, namespaces)
   end
   
-  def t(doc, query)
+  def t(doc, query) # Returns a string of either escaped HTML (for content) or plain text (for other nodes)
     q(doc, query).inner_text
   end
 
-  def uh(doc, query)
+  def uh(doc, query) # Unescapes imported HTML from the feed. Needed to import comment and and ticket content
     CGI.unescapeHTML(t(doc, query))
   end
 
-  def issues_doc
+  def issues_doc # Create one file listing all tickets
     return @issues_doc if @issues_doc
     filename = "xml/#{project}.issues.xml"
     unless File.exist?(filename)
@@ -56,8 +56,8 @@ class GCIT2GHI
     @issues_doc = Nokogiri::XML(File.new(filename))
   end
 
-  def comments_doc(issue_id)
-    filename = "xml/#{project}.issue-#{issue_id}.xml"
+  def comments_doc(issue_id) # Create one file per ticket with all comments in it
+    filename = "xml/#{project}.issue-#{issue_id}.xml" # Set file name format to project.issue-ID.xml
     unless File.exist?(filename)
       File.open(filename, 'wb'){|f| f.write(open(gcit_comments_url(issue_id)).read)}
     end
@@ -66,8 +66,9 @@ class GCIT2GHI
 
   def convert
     entries = q(issues_doc, '/atom:feed/atom:entry')
-    print "Parsing issues XML file..."
+    p "Parsing issues XML file..."
     @entries = entries.map do |e|
+
       {
         :id=>t(e, 'issues:id'),
         :author=>t(e, 'atom:author/atom:name'),
@@ -77,59 +78,47 @@ class GCIT2GHI
         :json => {
           "title"=>t(e, 'atom:title'),
           "body"=>uh(e, 'atom:content'),
-          "assignee"=>user,
+#          "assignee"=>user, # Uncomment this line and replace 'user' with the username of the person, to whom the imported tickets should be assigned. The name must be wrapped in double quotes to be accepted as a valid JSON object.
         }
       }
     end
     puts "done (#{entries.length} issues)"
-
+    
     print "Getting comments for each issue: "
     @entries.each do |e|
       cdoc = q(comments_doc(e[:id]), '/atom:feed/atom:entry')
       e[:num_comments] = t(cdoc, "//openSearch:totalResults")
       e[:comments] = cdoc.map do |c|
-        {
-          :author=>t(c, 'atom:author/atom:name'),
-          :published=>t(c, 'atom:published'),
-          :json => {
-            'body'=>uh(c, 'atom:content')
-          }
-        }
+        unless uh(c, 'atom:content').size == 0 # Allow  only comments with content.
+            {
+              :author=>t(c, 'atom:author/atom:name'),
+              :published=>t(c, 'atom:published'),
+              :json => {
+                'body'=>uh(c, 'atom:content')
+              }
+            }
+        end
       end
       print "."
     end
     puts 'done'
-
+     
     print "Preprocessing issues and comments: "
     @entries.each do |e|
-      e[:json]['body'] << "\n\nGoogle Code Info:\nIssue #: #{e[:id]}\nAuthor: #{e[:author]}\nCreated On: #{e[:published]}\nClosed On: #{e[:closed]}"
+      author = e[:author].sub(/@\S*/,"") # Anonymize author's email. Google Code links it to profile but GitHub makes a mailto: link
+      e[:json]['body'] << "\n\nImported from Google Code [Issue #{e[:id]}](http://code.google.com/p/#{project}/issues/detail?id=#{e[:id]})\nPosted by #{author} on: #{e[:published]}\nClosed On: #{e[:closed]}" # Append meta information and link to the original ticket in Google Code for reference and attachments that can't be transferred
       e[:comments].each do |c|
-        c[:json]['body'] << "\n\nGoogle Code Info:\nAuthor: #{c[:author]}\nCreated On: #{c[:published]}"
+        unless c === nil # Allow  only comments with content.
+          author = c[:author].sub(/@\S*/,"") # Anonymize author's email. Google Code links it to profile but GitHub makes a mailto: link
+          c[:json]['body'] << "\n\nImported from Google Code\nPosted by #{author} on: #{c[:published]}"
+        end
       end
     end
     puts 'done'
-
+    
     r = @resource = RestClient::Resource.new(ghi_issues_url, :user=>user, :password=>password)
     begin
-=begin
-    print "Deleting existing open issues: "
-    while !(existing = JSON.parse(r.get.body)).empty?
-      existing.map{|j| j['number']}.each do |i|
-        r[i.to_s].delete
-        print '.'
-      end
-    end
-    puts 'done'
-    print "Deleting existing closed issues: "
-    cr = RestClient::Resource.new("#{ghi_issues_url}?state=closed", :user=>user, :password=>password)
-    while !(existing = JSON.parse(cr.get.body)).empty?
-      existing.map{|j| j['number']}.each do |i|
-        r[i.to_s].delete
-        print '.'
-      end
-    end
-    puts 'done'
-=end
+    
     print "Uploading issues (|), closing issues (/), and uploading comments (.): "
     @entries.each do |e|
       res = r.post(e[:json].to_json, :content_type=>:json, :accept=>:json)
@@ -139,9 +128,13 @@ class GCIT2GHI
         r[number].post({'state'=>'closed'}.to_json, :content_type=>:json, :accept=>:json)
         print "/"
       end
-      e[:comments].each do |c|
-        r["#{number}/comments"].post(c[:json].to_json, :content_type=>:json, :accept=>:json)
-        print "."
+      unless e[:comments] == 0
+          e[:comments].each do |c|
+            unless c === nil # This is being checked just in case because it can't be verified without posting some tickets to GitHub
+                r["#{number}/comments"].post(c[:json].to_json, :content_type=>:json, :accept=>:json)
+                print "."
+            end
+          end
       end
     end
     puts 'done'
