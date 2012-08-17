@@ -15,11 +15,11 @@ Parentheses and commas are highly recommended to avoid confusion between the las
 **max-results** - (optional) Maximum tickets and maximum comments to fetch (defaults is 500)
 
 ###Usage Examples
-`ruby gcit2ghi.rb(beef,joe,my-beef,super-secret)` - fetches first 500 tickets and first 500 comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo joe/my-beef using the password `super-secret`.
+`ruby gcit2ghi.rb(beef,joe,my-beef,super-secret)` - fetches first 500 tickets and first 500 comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo `joe/my-beef` using the password `super-secret`.
 
-`ruby gcit2ghi.rb(beef,joe,my-beef,super-secret,,25)` - fetches first 25 tickets and first 25 comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo joe/my-beef using the password `super-secret`.
+`ruby gcit2ghi.rb(beef,joe,my-beef,super-secret,,25)` - fetches first 25 tickets and first 25 comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo `joe/my-beef` using the password `super-secret`.
 
-`ruby gcit2ghi.rb(beef,joe,our-beef,super-secret,my-org)` - fetches first 500 tickets and first 500 comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo my-org/our-beef on behalf of user `joe` using the password `super-secret`.
+`ruby gcit2ghi.rb(beef,joe,our-beef,super-secret,my-org)` - fetches first 500 tickets and first 500 comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo `my-org/our-beef` on behalf of user `joe` using the password `super-secret`.
 
 ## Requirements
 
@@ -53,7 +53,7 @@ This was used to convert the ruby-sequel Google Code issues to [jeremyevans/sequ
 
 ## License
 
-This code is licensed under the MIT license.  See the MIT-LICENSE file for details.
+This code is licensed under the MIT license.  See the <a href="MIT-LICENSE.md">MIT-LICENSE.md</a> file for details.
 
 ## Authors
 
