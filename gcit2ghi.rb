@@ -12,38 +12,38 @@ $stdout.sync = true
   
 class GCIT2GHI
   MAX_RESULTS = 500
-  attr_reader :project, :user, :repo, :password, :entries, :resource, :org 
+  attr_reader :project, :user, :repo, :password, :entries, :resource, :owner
 
-  def initialize(project, user, repo, password, *org)
+  def initialize(project, user, password, owner, repo)
     raise "No project name" unless project && !project.empty?
-    @project, @user, @repo, @password, @org = project, user, repo, password, org
+    @project, @user, @password, @owner, @repo = project, user, password, owner, repo
   end
 
-  def gcit_issues_url
+  def gcit_issues_url # Generates the URL of the tickets feed
     "https://code.google.com/feeds/issues/p/#{project}/issues/full?max-results=#{MAX_RESULTS}"
   end
 
-  def gcit_comments_url(issue_id)
+  def gcit_comments_url(issue_id) # Generates the URL of the comment feed for each ticket
     "https://code.google.com/feeds/issues/p/#{project}/issues/#{issue_id}/comments/full?max-results=#{MAX_RESULTS}"
   end
 
-  def ghi_issues_url # Generate the URL to push tickets into GitHub issues
-    @org ? "https://api.github.com/repos/#{org}/#{repo}/issues" : "https://api.github.com/repos/#{user}/#{repo}/issues"
+  def ghi_issues_url # Generates the URL to push tickets into GitHub issues
+    "https://api.github.com/repos/#{owner}/#{repo}/issues"
   end
   
-  def namespaces
+  def namespaces # Defines the namespace (aka the filename)
     @namespaces ||= Hash[*issues_doc.namespaces.to_a.map{|k, v| [k.gsub(/\Axmlns(:)?/){$1 ? '' : 'atom'}, v]}.flatten]
   end
 
-  def q(doc, query)
+  def q(doc, query) # Returns a Nokogiri::XML::NodeSet object from the file doc for the query
     doc.xpath(query, namespaces)
   end
   
-  def t(doc, query)
+  def t(doc, query) # Returns a string of either escaped HTML (for content) or plain text (for other nodes)
     q(doc, query).inner_text
   end
 
-  def uh(doc, query)
+  def uh(doc, query) # Unescapes imported HTML from the feed. Needed to import comment and and ticket content
     CGI.unescapeHTML(t(doc, query))
   end
 
@@ -66,8 +66,9 @@ class GCIT2GHI
 
   def convert
     entries = q(issues_doc, '/atom:feed/atom:entry')
-    print "Parsing issues XML file..."
+    p "Parsing issues XML file..."
     @entries = entries.map do |e|
+
       {
         :id=>t(e, 'issues:id'),
         :author=>t(e, 'atom:author/atom:name'),
@@ -77,11 +78,12 @@ class GCIT2GHI
         :json => {
           "title"=>t(e, 'atom:title'),
           "body"=>uh(e, 'atom:content'),
+#          "assignee"=>user, # Uncomment this line and replace 'user' with the username of the person, to whom the imported tickets should be assigned. The name must be wrapped in double quotes to be accepted as a valid JSON object.
         }
       }
     end
     puts "done (#{entries.length} issues)"
-
+    
     print "Getting comments for each issue: "
     @entries.each do |e|
       cdoc = q(comments_doc(e[:id]), '/atom:feed/atom:entry')
@@ -100,7 +102,7 @@ class GCIT2GHI
       print "."
     end
     puts 'done'
-
+     
     print "Preprocessing issues and comments: "
     @entries.each do |e|
       author = e[:author].sub(/@\S*/,"") # Anonymize author's email. Google Code links it to profile but GitHub makes a mailto: link
@@ -113,10 +115,10 @@ class GCIT2GHI
       end
     end
     puts 'done'
-
+    
     r = @resource = RestClient::Resource.new(ghi_issues_url, :user=>user, :password=>password)
     begin
-
+    
     print "Uploading issues (|), closing issues (/), and uploading comments (.): "
     @entries.each do |e|
       res = r.post(e[:json].to_json, :content_type=>:json, :accept=>:json)

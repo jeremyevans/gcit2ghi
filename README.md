@@ -4,21 +4,21 @@ This is a simple script to convert from Google Code Issue Tracker to GitHub Issu
 
 ## Usage
 
-`ruby gcit2ghi.rb project,user,repo,password,*org`
+`ruby gcit2ghi.rb project,user,repo,password,org`
 
 **project** - Google Code project  
 **user** - GitHub user name  
-**repo** - GitHub repository name  
 **password** - GitHub user password  
-**org** - (optional) Organization's username on GitHub for non-personal repos  
+**owner** - Repository's owner's username on GitHub (ensures compatibility with personal and organization-owned repos)  
+**repo** - Repository name  
 ~~**max-results** - (optional) Maximum tickets and maximum comments to fetch (defaults is 500)~~ (disabled for debugging)
 
 ###Usage Examples
-`ruby gcit2ghi.rb beef,joe,my-beef,super-secret` - fetches first 500 tickets and first 500 comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo `joe/my-beef` using the password `super-secret`.
+`ruby gcit2ghi.rb beef joe super-secret joe my-beef` - fetches 500 oldest tickets and 500 oldest comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo `joe/my-beef` using the password `super-secret`.
 
-~~`ruby gcit2ghi.rb beef,joe,my-beef,super-secret,,25` - fetches first 25 tickets and first 25 comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo `joe/my-beef` using the password `super-secret`.~~
+`ruby gcit2ghi.rb beef joe super-secret joes-org our-beef` - fetches 500 oldest tickets and 500 oldest comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo `joes-org/our-beef` on behalf of user `joe` using the password `super-secret`.
 
-`ruby gcit2ghi.rb beef,joe,our-beef,super-secret,my-org` - fetches first 500 tickets and first 500 comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo `my-org/our-beef` on behalf of user `joe` using the password `super-secret`.
+~~`ruby gcit2ghi.rb beef joe super-secret joe my-beef 25` - fetches 25 oldest tickets and 25 oldest comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo `joe/my-beef` using the password `super-secret`.~~
 
 ## Requirements
 
@@ -40,13 +40,17 @@ This is a simple script to convert from Google Code Issue Tracker to GitHub Issu
 
 ## Caveats
 
+If you want to import more/fewer than 500 tickets or comments per ticket you need to edit the script manually. Global constant `MAX_RESULTS` [on line 14](https://github.com/dnbrv/gcit2ghi/blob/master/gcit2ghi.rb#L14) is responsible for that.
+
 There is very little error handling done. There are only basic comments in the source code (whatever I, dnbrv, added or was able to understand in the original code).
 
-Files uploaded to Google Code (aka attachments) are not copied. This is a limitation of accessing tickets through feeds.
+Files uploaded to Google Code (aka attachments) are not copied. This is a limitation of Google Code Issue Tracker API.
 
-Labels and milestones are not copied, only the title and body of issues and the body of comments. Tickets are imported without assignee.
+Labels and milestones are not copied, only the title and body of issues and the body of comments.
 
-If you have a problem with the script after a partial import, you can open the script and uncomment out the lines that delete existing issues.  You shouldn't do this if you want to keep any existing issues, though.
+Tickets are imported without assignee by default. If you want to assign them to someone automatically, see [line 81 of the script](https://github.com/dnbrv/gcit2ghi/blob/master/gcit2ghi.rb#L81) for instructions.
+
+There's no way to delete existing tickets from GitHub either manually or via API. If you botch-up a migration, you'll have to delete and re-create the repo on GitHub. **DO NOT ATTEMPT THIS** if you don't know what you're doing. Tip: make sure your local copy of the repo is up-to-date and secured before deleting the remote one.
 
 This was used to convert the ruby-sequel Google Code issues to [jeremyevans/sequel](https://github.com/jeremyevans/sequel) on GitHub. Jeremy has  stopped development since then so [Denis Baranov](http://www.dnbrv.com) made some improvements to transition [7plus](https://github.com/7plus/7plus).
 
@@ -58,3 +62,9 @@ This code is licensed under the MIT license.  See the <a href="https://github.co
 
 Jeremy Evans <code@jeremyevans.net> - original author  
 Denis Baranov <dev@dnbrv.com> - author of this fork
+
+## Whishlist
+
+ - A relatively simple way to migrate labels and milestones (it can't be very simple because of Google Code treats everything as labels and GitHub throws an error when a label doesn't exist, which requires either a label creation sub-routine or renaming labels prior to import).
+ - Allowing users set the number of tickets to import in console not file.
+ - Checking for existing tickets in GitHub and prompting users to overwrite them (i.e., fix a prematurely-stopped migration).
