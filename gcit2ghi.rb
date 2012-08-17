@@ -9,28 +9,28 @@ require 'rest_client'
 
 Dir.mkdir("xml") unless File.directory?("xml")
 $stdout.sync = true
-
+  
 class GCIT2GHI
-  @max-results = 500
-  attr_reader :project, :user, :repo, :password, :entries, :resource, :org
+  MAX_RESULTS = 500
+  attr_reader :project, :user, :repo, :password, :entries, :resource, :org 
 
-  def initialize(project, user, repo, password, *org, *max-results)
+  def initialize(project, user, repo, password, *org)
     raise "No project name" unless project && !project.empty?
-    @project, @user, @repo, @password, @org, @max-results = project, user, repo, password, org, max-results
+    @project, @user, @repo, @password, @org = project, user, repo, password, org
   end
 
-  def gcit_issues_url # Generate the URL of the feed to fetch Google Code Issue Tracker tickets
-    "https://code.google.com/feeds/issues/p/#{project}/issues/full?max-results=#{max-results}"
+  def gcit_issues_url
+    "https://code.google.com/feeds/issues/p/#{project}/issues/full?max-results=#{MAX_RESULTS}"
   end
 
-  def gcit_comments_url(issue_id) # Generate the URL of the feed to fetch Google Code Issue Tracker each ticket's comments
-    "https://code.google.com/feeds/issues/p//issues/#{issue_id}/comments/full?max-results=#{max-results}"
+  def gcit_comments_url(issue_id)
+    "https://code.google.com/feeds/issues/p/#{project}/issues/#{issue_id}/comments/full?max-results=#{MAX_RESULTS}"
   end
 
   def ghi_issues_url # Generate the URL to push tickets into GitHub issues
     @org ? "https://api.github.com/repos/#{org}/#{repo}/issues" : "https://api.github.com/repos/#{user}/#{repo}/issues"
   end
-
+  
   def namespaces
     @namespaces ||= Hash[*issues_doc.namespaces.to_a.map{|k, v| [k.gsub(/\Axmlns(:)?/){$1 ? '' : 'atom'}, v]}.flatten]
   end
@@ -106,8 +106,8 @@ class GCIT2GHI
       author = e[:author].sub(/@\S*/,"") # Anonymize author's email. Google Code links it to profile but GitHub makes a mailto: link
       e[:json]['body'] << "\n\nImported from Google Code [Issue #{e[:id]}](http://code.google.com/p/#{project}/issues/detail?id=#{e[:id]})\nPosted by #{author} on: #{e[:published]}\nClosed On: #{e[:closed]}" # Append meta information and link to the original ticket in Google Code for reference and attachments that can't be transferred
       e[:comments].each do |c|
-        author = c[:author].sub(/@\S*/,"") # Anonymize author's email. Google Code links it to profile but GitHub makes a mailto: link
         unless c === nil # Allow  only comments with content.
+          author = c[:author].sub(/@\S*/,"") # Anonymize author's email. Google Code links it to profile but GitHub makes a mailto: link
           c[:json]['body'] << "\n\nImported from Google Code\nPosted by #{author} on: #{c[:published]}"
         end
       end

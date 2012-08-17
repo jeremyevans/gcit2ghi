@@ -4,22 +4,21 @@ This is a simple script to convert from Google Code Issue Tracker to GitHub Issu
 
 ## Usage
 
-`ruby gcit2ghi.rb(project,user,repo,password,*org,*max-results)`
+`ruby gcit2ghi.rb project,user,repo,password,*org`
 
-Parentheses and commas are highly recommended to avoid confusion between the last two optional arguments.
 **project** - Google Code project  
 **user** - GitHub user name  
 **repo** - GitHub repository name  
 **password** - GitHub user password  
 **org** - (optional) Organization's username on GitHub for non-personal repos  
-**max-results** - (optional) Maximum tickets and maximum comments to fetch (defaults is 500)
+~~**max-results** - (optional) Maximum tickets and maximum comments to fetch (defaults is 500)~~ (disabled for debugging)
 
 ###Usage Examples
-`ruby gcit2ghi.rb(beef,joe,my-beef,super-secret)` - fetches first 500 tickets and first 500 comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo `joe/my-beef` using the password `super-secret`.
+`ruby gcit2ghi.rb beef,joe,my-beef,super-secret` - fetches first 500 tickets and first 500 comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo `joe/my-beef` using the password `super-secret`.
 
-`ruby gcit2ghi.rb(beef,joe,my-beef,super-secret,,25)` - fetches first 25 tickets and first 25 comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo `joe/my-beef` using the password `super-secret`.
+~~`ruby gcit2ghi.rb beef,joe,my-beef,super-secret,,25` - fetches first 25 tickets and first 25 comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo `joe/my-beef` using the password `super-secret`.~~
 
-`ruby gcit2ghi.rb(beef,joe,our-beef,super-secret,my-org)` - fetches first 500 tickets and first 500 comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo `my-org/our-beef` on behalf of user `joe` using the password `super-secret`.
+`ruby gcit2ghi.rb beef,joe,our-beef,super-secret,my-org` - fetches first 500 tickets and first 500 comments per ticket from Google Code project [Beef](http://code.google.com/p/beef/) and appends them to GitHub repo `my-org/our-beef` on behalf of user `joe` using the password `super-secret`.
 
 ## Requirements
 
