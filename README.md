@@ -4,7 +4,7 @@ This is a simple script to convert from Google Code Issue Tracker to GitHub Issu
 
 ## Usage
 
-`ruby gcit2ghi.rb project,user,repo,password,org`
+`ruby gcit2ghi.rb project user password owner repo`
 
 **project** - Google Code project  
 **user** - GitHub user name  
