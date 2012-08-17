@@ -53,7 +53,7 @@ This was used to convert the ruby-sequel Google Code issues to [jeremyevans/sequ
 
 ## License
 
-This code is licensed under the MIT license.  See the <a href="MIT-LICENSE.md">MIT-LICENSE.md</a> file for details.
+This code is licensed under the MIT license.  See the <a href="https://github.com/dnbrv/gcit2ghi/blob/master/MIT-LICENSE.md">MIT-LICENSE.md</a> file for details.
 
 ## Authors
 
